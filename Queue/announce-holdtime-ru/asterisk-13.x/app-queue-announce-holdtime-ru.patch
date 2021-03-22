@@ -1,0 +1,128 @@
+--- apps/app_queue.c	2021-03-15 15:56:34.529511909 +0300
++++ apps/app_queue.c	2021-03-19 19:30:20.990918418 +0300
+@@ -1582,8 +1582,20 @@
+ 		AST_STRING_FIELD(sound_minutes);
+ 		/*! Sound file: "minute." (def. queue-minute) */
+ 		AST_STRING_FIELD(sound_minute);
++		/*! Sound file: "minut." (def. queue-minut) */
++		AST_STRING_FIELD(sound_fbx_minut);
++		/*! Sound file: "minuta." (def. queue-minuta) */
++		AST_STRING_FIELD(sound_fbx_minuta);
++		/*! Sound file: "minuti." (def. queue-minuti) */
++		AST_STRING_FIELD(sound_fbx_minuti);
+ 		/*! Sound file: "seconds." (def. queue-seconds) */
+ 		AST_STRING_FIELD(sound_seconds);
++		/*! Sound file: "secund." (def. queue-secund) */
++		AST_STRING_FIELD(sound_fbx_secund);
++		/*! Sound file: "secunda." (def. queue-secunda) */
++		AST_STRING_FIELD(sound_fbx_secunda);
++		/*! Sound file: "secundi." (def. queue-secundi) */
++		AST_STRING_FIELD(sound_fbx_secundi);
+ 		/*! Sound file: "Thank you for your patience." (def. queue-thankyou) */
+ 		AST_STRING_FIELD(sound_thanks);
+ 		/*! Sound file: Custom announce for caller, no default */
+@@ -2721,7 +2733,13 @@
+ 	ast_string_field_set(q, sound_holdtime, "queue-holdtime");
+ 	ast_string_field_set(q, sound_minutes, "queue-minutes");
+ 	ast_string_field_set(q, sound_minute, "queue-minute");
++	ast_string_field_set(q, sound_fbx_minut, "queue-minut");
++	ast_string_field_set(q, sound_fbx_minuta, "queue-minuta");
++	ast_string_field_set(q, sound_fbx_minuti, "queue-minuti");
+ 	ast_string_field_set(q, sound_seconds, "queue-seconds");
++	ast_string_field_set(q, sound_fbx_secund, "queue-secund");
++	ast_string_field_set(q, sound_fbx_secunda, "queue-secunda");
++	ast_string_field_set(q, sound_fbx_secundi, "queue-secundi");
+ 	ast_string_field_set(q, sound_thanks, "queue-thankyou");
+ 	ast_string_field_set(q, sound_reporthold, "queue-reporthold");
+ 
+@@ -3052,8 +3070,20 @@
+ 		ast_string_field_set(q, sound_minutes, val);
+ 	} else if (!strcasecmp(param, "queue-minute")) {
+ 		ast_string_field_set(q, sound_minute, val);
++	} else if (!strcasecmp(param, "queue-minut")) {
++		ast_string_field_set(q, sound_fbx_minut, val);
++	} else if (!strcasecmp(param, "queue-minuta")) {
++		ast_string_field_set(q, sound_fbx_minuta, val);
++	} else if (!strcasecmp(param, "queue-minuti")) {
++		ast_string_field_set(q, sound_fbx_minuti, val);
+ 	} else if (!strcasecmp(param, "queue-seconds")) {
+ 		ast_string_field_set(q, sound_seconds, val);
++	} else if (!strcasecmp(param, "queue-secund")) {
++		ast_string_field_set(q, sound_fbx_secund, val);
++	} else if (!strcasecmp(param, "queue-secunda")) {
++		ast_string_field_set(q, sound_fbx_secunda, val);
++	} else if (!strcasecmp(param, "queue-secundi")) {
++		ast_string_field_set(q, sound_fbx_secundi, val);
+ 	} else if (!strcasecmp(param, "queue-thankyou")) {
+ 		ast_string_field_set(q, sound_thanks, val);
+ 	} else if (!strcasecmp(param, "queue-callerannounce")) {
+@@ -3911,23 +3941,36 @@
+ 		}
+ 
+ 		if (avgholdmins >= 1) {
+-			res = ast_say_number(qe->chan, avgholdmins, AST_DIGIT_ANY, ast_channel_language(qe->chan), NULL);
++			if (avgholdmins < 3) {
++				res = ast_say_number(qe->chan, avgholdmins, AST_DIGIT_ANY, ast_channel_language(qe->chan), "f");
++            } else {
++				res = ast_say_number(qe->chan, avgholdmins, AST_DIGIT_ANY, ast_channel_language(qe->chan), NULL);
++            }
+ 			if (res) {
+ 				goto playout;
+ 			}
+ 
+-			if (avgholdmins == 1) {
+-				res = play_file(qe->chan, qe->parent->sound_minute);
+-				if (res) {
+-					goto playout;
+-				}
+-			} else {
+-				res = play_file(qe->chan, qe->parent->sound_minutes);
+-				if (res) {
+-					goto playout;
+-				}
++            /* 11, 12, ... 19 */
++            if (avgholdmins > 10 && avgholdmins < 20) {
++				res = play_file(qe->chan, qe->parent->sound_fbx_minut);
++            /* 10, 20, ... 100 ... */
++            } else if (avgholdmins % 10 == 0) {
++				res = play_file(qe->chan, qe->parent->sound_fbx_minut);
++            /* 5, 6, 7, 8, 9  */
++            } else if (avgholdmins % 5 == 0 || avgholdmins % 6 == 0 || avgholdmins % 7 == 0 || avgholdmins % 8 == 0 || avgholdmins % 9 == 0) {
++				res = play_file(qe->chan, qe->parent->sound_fbx_minut);
++            /* 2, 3, 4 */
++            } else if (avgholdmins % 2 == 0 || avgholdmins % 3 == 0) {
++				res = play_file(qe->chan, qe->parent->sound_fbx_minuti);
++            } else {
++				res = play_file(qe->chan, qe->parent->sound_fbx_minuta);
++            }
++			if (res) {
++				goto playout;
+ 			}
++
+ 		}
++/*
+ 		if (avgholdsecs >= 1) {
+ 			res = ast_say_number(qe->chan, avgholdsecs, AST_DIGIT_ANY, ast_channel_language(qe->chan), NULL);
+ 			if (res) {
+@@ -3939,6 +3982,7 @@
+ 				goto playout;
+ 			}
+ 		}
++*/
+ 	} else if (qe->parent->announceholdtime && !qe->parent->announceposition) {
+ 		say_thanks = 0;
+ 	}
+@@ -10598,7 +10642,13 @@
+ 	MEMBER(call_queue, sound_holdtime, AST_DATA_STRING)		\
+ 	MEMBER(call_queue, sound_minutes, AST_DATA_STRING)		\
+ 	MEMBER(call_queue, sound_minute, AST_DATA_STRING)		\
++	MEMBER(call_queue, sound_fbx_minut, AST_DATA_STRING)		\
++	MEMBER(call_queue, sound_fbx_minuta, AST_DATA_STRING)		\
++	MEMBER(call_queue, sound_fbx_minuti, AST_DATA_STRING)		\
+ 	MEMBER(call_queue, sound_seconds, AST_DATA_STRING)		\
++	MEMBER(call_queue, sound_fbx_secund, AST_DATA_STRING)		\
++	MEMBER(call_queue, sound_fbx_secunda, AST_DATA_STRING)		\
++	MEMBER(call_queue, sound_fbx_secundi, AST_DATA_STRING)		\
+ 	MEMBER(call_queue, sound_thanks, AST_DATA_STRING)		\
+ 	MEMBER(call_queue, sound_callerannounce, AST_DATA_STRING)	\
+ 	MEMBER(call_queue, sound_reporthold, AST_DATA_STRING)		\
